@@ -36,6 +36,14 @@ impl Lexer {
         Lexer { data: data.chars().collect(), index: 0 }
     }
 
+    pub fn pos(&self) -> usize {
+        self.index
+    }
+
+    pub fn seek(&mut self, pos: usize) {
+        self.index = pos;
+    }
+
     pub fn peek(&mut self) -> Option<Token> {
         let prev_index = self.index;
 
