@@ -74,8 +74,9 @@ impl ASTNode {
 pub fn parse_regex(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
     let mut children = vec![parse_value(lexer)?];
 
-    while let Ok(child) = parse_value(lexer) {
-        children.push(child);
+    while let Some(Token::Or) =  lexer.peek() {
+        lexer.next();
+        children.push(parse_value(lexer)?);
     }
 
     Ok(Box::new(ASTNode{node_type: Token::Or, children}))
@@ -94,10 +95,11 @@ fn parse_value(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
     loop {
         let next_token = lexer.peek();
         if let Some(next_token) = next_token {
-            lexer.next();
             if matches!(next_token, Token::ZeroOrMore) {
+                lexer.next();
                 regex = Box::new(ASTNode{node_type:Token::ZeroOrMore, children: vec![regex]})
             } else if matches!(next_token, Token::OneOrMore) {
+                lexer.next();
                 regex = Box::new(ASTNode{node_type:Token::OneOrMore, children: vec![regex]})
             } else {
                 return Ok(regex)
