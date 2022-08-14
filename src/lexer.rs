@@ -2,6 +2,7 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     ZeroOrMore,
+    Optional,
     OneOrMore,
     Or,
     OpenParenthesis,
@@ -9,8 +10,9 @@ pub enum Token {
     Symbol(char),
 }
 
-const PARSE_TABLE: [(char, Token); 5] = [
+const PARSE_TABLE: [(char, Token); 6] = [
     ('*', Token::ZeroOrMore),
+    ('?', Token::Optional),
     ('+', Token::OneOrMore),
     ('|', Token::Or),
     ('(', Token::OpenParenthesis),
