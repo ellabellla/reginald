@@ -39,8 +39,8 @@ impl ParseError {
 }
 
 pub struct ASTNode {
-    node_type: SyntaxType,
-    children: Vec<Box<ASTNode>>,
+    pub node_type: SyntaxType,
+    pub children: Vec<Box<ASTNode>>,
 }
 
 impl ASTNode {
@@ -82,6 +82,26 @@ impl ASTNode {
 
 
 pub fn parse_regex(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
+    let ast = parse_regex_helper(lexer)?;
+
+    if let Some(_) = lexer.peek() {
+        Err(ParseError::new("unknown symbol"))
+    } else {
+        Ok(ast)
+    }
+}
+
+fn parse_regex_helper(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
+    if let Ok(child) = parse_or(lexer) {
+        Ok(Box::new(ASTNode{node_type: SyntaxType::Once, children: vec![child]}))
+    } else {
+        parse_concat(lexer)
+    }
+}
+
+fn parse_or(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
+    let fallback = lexer.pos();
+
     let mut children = vec![parse_concat(lexer)?];
 
     while let Some(Token::Or) =  lexer.peek() {
@@ -90,7 +110,8 @@ pub fn parse_regex(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
     }
 
     if children.len() == 1 {
-        Ok(children.pop().unwrap())
+        lexer.seek(fallback);
+        Err(ParseError::new("expected or"))
     } else {
         Ok(Box::new(ASTNode{node_type: SyntaxType::Or, children}))
     }
@@ -116,26 +137,21 @@ fn parse_value(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
     })?;
 
 
-    loop {
-        let next_token = lexer.peek();
-        if let Some(next_token) = next_token {
-            if matches!(next_token, Token::ZeroOrMore) {
-                lexer.next();
-                regex = Box::new(ASTNode{node_type:SyntaxType::ZeroOrMore, children: vec![regex]})
-            } else if matches!(next_token, Token::OneOrMore) {
-                lexer.next();
-                regex = Box::new(ASTNode{node_type:SyntaxType::OneOrMore, children: vec![regex]})
-            } else if matches!(next_token, Token::Optional) {
-                lexer.next();
-                regex = Box::new(ASTNode{node_type:SyntaxType::Optional, children: vec![regex]})
-            } else {
-                return Ok(regex)
-            }
-        } else {
-            return Ok(regex)
+    let next_token = lexer.peek();
+    if let Some(next_token) = next_token {
+        if matches!(next_token, Token::ZeroOrMore) {
+            lexer.next();
+            regex = Box::new(ASTNode{node_type:SyntaxType::ZeroOrMore, children: vec![regex]})
+        } else if matches!(next_token, Token::OneOrMore) {
+            lexer.next();
+            regex = Box::new(ASTNode{node_type:SyntaxType::OneOrMore, children: vec![regex]})
+        } else if matches!(next_token, Token::Optional) {
+            lexer.next();
+            regex = Box::new(ASTNode{node_type:SyntaxType::Optional, children: vec![regex]})
         }
     }
 
+    Ok(regex)
 }
 
 fn parse_bracketed(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
@@ -147,7 +163,7 @@ fn parse_bracketed(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
         return Err(ParseError::new("expected parenthesis"))
     }
 
-    let res = parse_regex(lexer);
+    let res = parse_regex_helper(lexer);
     if res.is_ok() { 
         if let Some(Token::CloseParenthesis) = lexer.next() {
             res
@@ -173,20 +189,20 @@ fn parse_symbol(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
 #[cfg(test)]
 mod tests {
     use crate::lexer::Lexer;
-    use super::parse_regex;
+    use super::parse_regex_helper;
 
     #[test]
     fn test() {
         assert_eq!(parse("abcd"), "((Symbol('a'))(Symbol('b'))(Symbol('c'))(Symbol('d'))Once)");
         assert_eq!(parse("(ab)cd"), "(((Symbol('a'))(Symbol('b'))Once)(Symbol('c'))(Symbol('d'))Once)");
-        assert_eq!(parse("a*+c*d+e?"), "((((Symbol('a'))ZeroOrMore)OneOrMore)((Symbol('c'))ZeroOrMore)((Symbol('d'))OneOrMore)((Symbol('e'))Optional)Once)");
+        assert_eq!(parse("a+c*d+e?"), "(((Symbol('a'))OneOrMore)((Symbol('c'))ZeroOrMore)((Symbol('d'))OneOrMore)((Symbol('e'))Optional)Once)");
         assert_eq!(parse("(ab)*cd+"), "((((Symbol('a'))(Symbol('b'))Once)ZeroOrMore)(Symbol('c'))((Symbol('d'))OneOrMore)Once)");
-        assert_eq!(parse("ab|cd"), "(((Symbol('a'))(Symbol('b'))Once)((Symbol('c'))(Symbol('d'))Once)Or)");
-        assert_eq!(parse("(a)+b|c*d"), "(((((Symbol('a'))Once)OneOrMore)(Symbol('b'))Once)(((Symbol('c'))ZeroOrMore)(Symbol('d'))Once)Or)");
+        assert_eq!(parse("ab|cd"), "((((Symbol('a'))(Symbol('b'))Once)((Symbol('c'))(Symbol('d'))Once)Or)Once)");
+        assert_eq!(parse("(a)+b|c*d"), "((((((Symbol('a'))Once)OneOrMore)(Symbol('b'))Once)(((Symbol('c'))ZeroOrMore)(Symbol('d'))Once)Or)Once)");
     }
 
     fn parse(string:&str) -> String {
-        parse_regex(&mut Lexer::new(string)).unwrap().to_string()
+        parse_regex_helper(&mut Lexer::new(string)).unwrap().to_string()
     }
 }
 
