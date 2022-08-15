@@ -38,40 +38,43 @@ impl ParseError {
     }
 }
 
-pub struct ASTNode {
-    pub node_type: SyntaxType,
-    pub children: Vec<Box<ASTNode>>,
+pub struct AST {
+    pub nodes: Box<Vec<ASTNode>>,
+    pub start_node: usize,
 }
 
-impl ASTNode {
+impl AST {
+    #[cfg(test)]
     pub fn to_string(&self) -> String{
         let mut out = vec![];
+        let start_node = self.nodes.get(self.start_node).unwrap();
 
         out.push('(');
 
-        for child in &self.children {
-            ASTNode::to_string_helper(child, &mut out);
+        for child in &start_node.children {
+            self.to_string_helper(self.nodes.get(*child).unwrap(), &mut out);
         }
 
-        ASTNode::push_token(&self.node_type, &mut out);
+        AST::push_token(&start_node.node_type, &mut out);
         out.push(')');
 
         out.iter().collect()
     }
 
-
-    fn to_string_helper(node: &Box<ASTNode>, out: &mut Vec<char>) {
+    #[cfg(test)]
+    fn to_string_helper(&self, node: &ASTNode, out: &mut Vec<char>) {
         out.push('(');
 
 
         for child in &node.children {
-            ASTNode::to_string_helper(child, out);
+            self.to_string_helper(self.nodes.get(*child).unwrap(), out);
         }
 
-        ASTNode::push_token(&node.node_type, out);
+        AST::push_token(&node.node_type, out);
         out.push(')');
     }
 
+    #[cfg(test)]
     fn push_token(token: &SyntaxType, out: &mut Vec<char>) {
         let name = format!("{:?}", token);
         for c in name.chars() {
@@ -80,60 +83,71 @@ impl ASTNode {
     }
 }
 
+pub struct ASTNode {
+    pub node_type: SyntaxType,
+    pub children: Vec<usize>,
+}
 
-pub fn parse_regex(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
-    let ast = parse_regex_helper(lexer)?;
+fn push_node(nodes: &mut Box<Vec<ASTNode>>, node: ASTNode) -> usize{
+    nodes.push(node);
+    nodes.len() - 1
+}
+
+pub fn parse_regex(lexer: &mut Lexer) -> Result<AST, ParseError> {
+    let mut nodes = Box::new(vec![]);
+    
+    let start_node = parse_regex_helper(lexer, &mut nodes)?;
 
     if let Some(_) = lexer.peek() {
         Err(ParseError::new("unknown symbol"))
     } else {
-        Ok(ast)
+        Ok(AST{nodes, start_node})
     }
 }
 
-fn parse_regex_helper(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
-    if let Ok(child) = parse_or(lexer) {
-        Ok(Box::new(ASTNode{node_type: SyntaxType::Once, children: vec![child]}))
+fn parse_regex_helper(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
+    if let Ok(child) = parse_or(lexer, nodes) {
+        Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Once, children: vec![child]}))
     } else {
-        parse_concat(lexer)
+        parse_concat(lexer, nodes)
     }
 }
 
-fn parse_or(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
+fn parse_or(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
     let fallback = lexer.pos();
 
-    let mut children = vec![parse_concat(lexer)?];
+    let mut children = vec![parse_concat(lexer, nodes)?];
 
     while let Some(Token::Or) =  lexer.peek() {
         lexer.next();
-        children.push(parse_concat(lexer)?);
+        children.push(parse_concat(lexer, nodes)?);
     }
 
     if children.len() == 1 {
         lexer.seek(fallback);
         Err(ParseError::new("expected or"))
     } else {
-        Ok(Box::new(ASTNode{node_type: SyntaxType::Or, children}))
+        Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Or, children}))
     }
 }
 
-fn parse_concat(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
-    let mut children = vec![parse_value(lexer)?];
+fn parse_concat(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
+    let mut children = vec![parse_value(lexer, nodes)?];
 
-    while let Ok(child) = parse_value(lexer) {
+    while let Ok(child) = parse_value(lexer, nodes) {
         children.push(child);
     }
 
-    Ok(Box::new(ASTNode { node_type: SyntaxType::Once, children }))
+    Ok(push_node(nodes, ASTNode { node_type: SyntaxType::Once, children }))
 }
 
-fn parse_value(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
+fn parse_value(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
     let fallback = lexer.pos();
 
-    let mut regex = parse_symbol(lexer)
+    let mut regex = parse_symbol(lexer, nodes)
     .or_else(|_| {
         lexer.seek(fallback);
-        parse_bracketed(lexer)
+        parse_bracketed(lexer, nodes)
     })?;
 
 
@@ -141,20 +155,20 @@ fn parse_value(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
     if let Some(next_token) = next_token {
         if matches!(next_token, Token::ZeroOrMore) {
             lexer.next();
-            regex = Box::new(ASTNode{node_type:SyntaxType::ZeroOrMore, children: vec![regex]})
+            regex = push_node(nodes, ASTNode{node_type:SyntaxType::ZeroOrMore, children: vec![regex]})
         } else if matches!(next_token, Token::OneOrMore) {
             lexer.next();
-            regex = Box::new(ASTNode{node_type:SyntaxType::OneOrMore, children: vec![regex]})
+            regex = push_node(nodes, ASTNode{node_type:SyntaxType::OneOrMore, children: vec![regex]})
         } else if matches!(next_token, Token::Optional) {
             lexer.next();
-            regex = Box::new(ASTNode{node_type:SyntaxType::Optional, children: vec![regex]})
+            regex = push_node(nodes, ASTNode{node_type:SyntaxType::Optional, children: vec![regex]})
         }
     }
 
     Ok(regex)
 }
 
-fn parse_bracketed(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
+fn parse_bracketed(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
     let fallback = lexer.pos();
 
     if let Some(Token::OpenParenthesis) = lexer.peek() {
@@ -163,7 +177,7 @@ fn parse_bracketed(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
         return Err(ParseError::new("expected parenthesis"))
     }
 
-    let res = parse_regex_helper(lexer);
+    let res = parse_regex_helper(lexer, nodes);
     if res.is_ok() { 
         if let Some(Token::CloseParenthesis) = lexer.next() {
             res
@@ -177,11 +191,11 @@ fn parse_bracketed(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
     }
 }
 
-fn parse_symbol(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
+fn parse_symbol(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
     if let Some(Token::Symbol(c)) = lexer.peek() {
         lexer.next();
 
-        Ok(Box::new(ASTNode{node_type: SyntaxType::Symbol(c), children: vec![]}))
+        Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Symbol(c), children: vec![]}))
     } else {
         Err(ParseError::new("expected symbol"))
     }
@@ -189,7 +203,7 @@ fn parse_symbol(lexer: &mut Lexer) -> Result<Box<ASTNode>, ParseError> {
 #[cfg(test)]
 mod tests {
     use crate::lexer::Lexer;
-    use super::parse_regex_helper;
+    use super::parse_regex;
 
     #[test]
     fn test() {
@@ -202,7 +216,7 @@ mod tests {
     }
 
     fn parse(string:&str) -> String {
-        parse_regex_helper(&mut Lexer::new(string)).unwrap().to_string()
+        parse_regex(&mut Lexer::new(string)).unwrap().to_string()
     }
 }
 
