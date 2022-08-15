@@ -1,12 +1,9 @@
-use lexer::Lexer;
-use parser::parse_regex;
+use regex::Regex;
 
 mod lexer;
 mod parser;
+mod regex;
 
 fn main() {
-    let mut lexer = Lexer::new("a+*");
-    let _ast = parse_regex(&mut lexer).unwrap();
-
-    println!("{}", _ast.to_string());
+    let _regex = Regex::compile("a*b");
 }
