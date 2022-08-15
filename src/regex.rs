@@ -294,7 +294,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_matche() {
+    fn test_is_match() {
         let regex = Regex::compile("a+(b|c)").unwrap();
 
         assert!(regex.is_match("yas ao cbhj bqwo aaab nme ab"))
