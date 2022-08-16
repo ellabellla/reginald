@@ -132,10 +132,10 @@ impl Regex {
             while let Some((index, state)) = stack.pop() {
                 let state = self.states.nodes.get(state).unwrap();
 
-                match state.state_type {
+                match &state.state_type {
                     StateType::Symbol(c) => if index+1 > chars.len() {
                         continue;
-                    } else if c == chars[index] {
+                    } else if *c == chars[index] {
                         for next_state in &state.next {
                             stack_back.push((index+1, *next_state));
                         }
@@ -145,8 +145,68 @@ impl Regex {
                     StateType::Accept => max_len = max_len.max(index),
                     StateType::None => for next_state in &state.next {
                         stack_back.push((index, *next_state));
+                    }
+                    StateType::Any => if index+1 > chars.len() {
+                        continue;
+                    } else {
+                        for next_state in &state.next {
+                            stack_back.push((index+1, *next_state));
+                        }
                     },
-                    _ => todo!()
+                    StateType::Set(set) => if index+1 > chars.len() {
+                        continue;
+                    } else {
+                        if {
+                            let mut found = false;
+                            for symbol in set {
+                                match symbol {
+                                    SetSymbol::Char(c) => if *c == chars[index] {
+                                        found = true;
+                                        break;
+                                    },
+                                    SetSymbol::Range(start, end) => 
+                                    if chars[index] as u32 >= *start && chars[index] as u32 <= *end {
+                                        found = true;
+                                        break;
+                                    },
+                                }
+                            }
+                            found
+                        } {
+                            for next_state in &state.next {
+                                stack_back.push((index+1, *next_state));
+                            }
+                        } else {
+                            continue;
+                        }
+                    },
+                    StateType::NotSet(set) => if index+1 > chars.len() {
+                        continue;
+                    } else {
+                        if {
+                            let mut found = true;
+                            for symbol in set {
+                                match symbol {
+                                    SetSymbol::Char(c) => if *c == chars[index] {
+                                        found = false;
+                                        break;
+                                    },
+                                    SetSymbol::Range(start, end) => 
+                                    if chars[index] as u32 >= *start && chars[index] as u32 <= *end {
+                                        found = false;
+                                        break;
+                                    },
+                                }
+                            }
+                            found
+                        } {
+                            for next_state in &state.next {
+                                stack_back.push((index+1, *next_state));
+                            }
+                        } else {
+                            continue;
+                        }
+                    },
                 }
             }
 
@@ -357,7 +417,7 @@ mod tests {
 
     #[test]
     fn output_diagram() {
-        let regex = Regex::compile("(a+b){3,}.[123][a-z1 ]").unwrap();
+        let regex = Regex::compile("a+[a-z0]{2,}").unwrap();
 
         let mut file = File::create("regex-compiled.md").unwrap();
         writeln!(&mut file, "{}", &regex.states.to_string()).unwrap();
@@ -365,9 +425,9 @@ mod tests {
 
     #[test]
     fn test() {
-        let regex = Regex::compile("a+(b|c)").unwrap();
+        let regex = Regex::compile("a+[b-z0]{2,}").unwrap();
 
-        assert!(regex.test("aaaab"));
+        assert!(regex.test("aaaaz0"));
     }
 
     #[test]
