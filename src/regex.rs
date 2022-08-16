@@ -417,7 +417,7 @@ mod tests {
 
     #[test]
     fn output_diagram() {
-        let regex = Regex::compile("a+[a-z0]{2,}").unwrap();
+        let regex = Regex::compile("a|b").unwrap();
 
         let mut file = File::create("regex-compiled.md").unwrap();
         writeln!(&mut file, "{}", &regex.states.to_string()).unwrap();
