@@ -1,7 +1,10 @@
 # WORK IN PROGRESS
+
 # Reginald: A from scratch Regular Expression Engine
 
 A very simple regular expression engine written in rust.  
+
+# 
 
 ## How it Works
 
@@ -39,10 +42,14 @@ A very simple regular expression engine written in rust.
 | ?      | zero or one, greedy                                                               | a?b      | "ab" or "b"                                                  |
 | +      | one or more, greedy                                                               | a+       | one or more "a"                                              |
 | \*     | zero or more, greedy                                                              | a*       | zero or more "a"                                             |
-| {x,y}  | will match an expression a tleast x times and at most y times                     | a{,3}    | at most three "a"                                            |
+| {x,y}  | will match an expression at least x times and at most y times                     | a{,3}    | at most three "a"                                            |
 |        |                                                                                   | a{2,}    | at minimum two "a"                                           |
 |        |                                                                                   | a{1,3}   | between one and three "a"                                    |
 | ()     | allows grouping of regular expressions                                            | (a\|b)\* | will match with "a" or "b" zero or more times                |
 | []     | will match with any characters or ranges in the set                               | [ac-e]   | will match with "a", "c'", "d", "e"                          |
-| [^]    | will match with any characters or ranges not in the set                           | [^ab]    | will match with any character that is not "a" or "b"         |
+| [^]    | will match with any characters not in the set                                     | [^ab]    | will match with any character that is not "a" or "b"         |
 | a-z    | a range, used in a set, ranges can only be defined with alphanumerical characters | [0-z]    | will match will all numbers and upper and lower case letters |
+
+## License
+
+This software is provided under the MIT license. [Click](LICENSE) here to view.
