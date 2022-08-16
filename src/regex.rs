@@ -21,7 +21,7 @@ impl StateType {
             StateType::None => "None".to_string(),
             StateType::Any => "Any".to_string(),
             StateType::Set(set) => set.iter().map(|symbol| symbol.to_string()).collect::<Vec<String>>().join(", "),
-            StateType::NotSet(set) => set.iter().map(|symbol| symbol.to_string()).collect::<Vec<String>>().join(", "),
+            StateType::NotSet(set) => format!("not {}",set.iter().map(|symbol| symbol.to_string()).collect::<Vec<String>>().join(", ")),
         }
     }
 }
@@ -321,17 +321,19 @@ impl Regex {
                 let node = ast.nodes.get(ast_node).unwrap();
 
                 let mut next_state = prev_state;
-                let mut begin_state = prev_state;
 
                 for _ in 0..from {
-                    begin_state = next_state;
                     next_state = self.compile_next(next_state, ast, node.children[0]);
                 }
+                self.states.nodes.push(StateNode{ state_type: StateType::None, next: vec![] });
+                let state = self.states.nodes.len() - 1;
 
                 let next_state_node = self.states.nodes.get_mut(next_state).unwrap();
-                next_state_node.next.push(begin_state);
+                next_state_node.next.push(state);
+
+                self.compile_zero_or_more(state, ast, ast_node);
         
-                next_state
+                state
             }
         } else {
             unreachable!()
@@ -417,7 +419,7 @@ mod tests {
 
     #[test]
     fn output_diagram() {
-        let regex = Regex::compile("a|b").unwrap();
+        let regex = Regex::compile("a{2,}").unwrap();
 
         let mut file = File::create("regex-compiled.md").unwrap();
         writeln!(&mut file, "{}", &regex.states.to_string()).unwrap();
@@ -425,9 +427,9 @@ mod tests {
 
     #[test]
     fn test() {
-        let regex = Regex::compile("a+[b-z0]{2,}").unwrap();
+        let regex = Regex::compile("a{2,}").unwrap();
 
-        assert!(regex.test("aaaaz0"));
+        assert!(regex.test("aaa"));
     }
 
     #[test]
