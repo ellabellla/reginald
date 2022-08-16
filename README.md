@@ -160,7 +160,7 @@ flowchart LR
 | Set    | Any character in the set will be matched and the state machine will continue                               |
 | NotSet | Any character not in the set will be matched and the state machine will continue                           |
 | Accept | A ending state for the state machine                                                                       |
-| None   | Used as a connected point between states and is otherwise ignored when simulating the state machine.       |
+| None   | Used as a junction between states.                                                                         |
 
 ### Building blocks
 
@@ -312,20 +312,35 @@ flowchart LR
 
 ## Syntax
 
-| Tokens | Description                                                                       | Example  |                                                              |
-| ------ | --------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------ |
-| \|     | will match either what is before or after it                                      | a\|b     | will match with "a" or "b"                                   |
-| .      | any                                                                               | .        | will match with any character                                |
-| ?      | zero or one, greedy                                                               | a?b      | "ab" or "b"                                                  |
-| +      | one or more, greedy                                                               | a+       | one or more "a"                                              |
-| \*     | zero or more, greedy                                                              | a*       | zero or more "a"                                             |
-| {x,y}  | will match an expression at least x times and at most y times                     | a{,3}    | at most three "a"                                            |
-|        |                                                                                   | a{2,}    | at minimum two "a"                                           |
-|        |                                                                                   | a{1,3}   | between one and three "a"                                    |
-| ()     | allows grouping of regular expressions                                            | (a\|b)\* | will match with "a" or "b" zero or more times                |
-| \[\]   | will match with any characters or ranges in the set                               | \[ac-e\] | will match with "a", "c'", "d", "e"                          |
-| \[^\]  | will match with any characters not in the set                                     | \[^ab\]  | will match with any character that is not "a" or "b"         |
-| a-z    | a range, used in a set, ranges can only be defined with alphanumerical characters | \[0-z\]  | will match will all numbers and upper and lower case letters |
+### EBNF
+
+```ebnf
+char = a_character;
+digit = [0-9];
+num = digit+;
+
+set = '[' '^'? (char | char '-' char)+ ']';
+value = ('.' | char | '(' regex ')' | set) ('?' | '*' | '+' | '{' num? ',' num? '}' );
+
+regex = value+ ('|' value+)*;
+```
+
+### Operators
+
+| Operators | Description                                                                       | Example  |                                                              |
+| --------- | --------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------ |
+| \|        | will match either what is before or after it                                      | a\|b     | will match with "a" or "b"                                   |
+| .         | any                                                                               | .        | will match with any character                                |
+| ?         | zero or one, greedy                                                               | a?b      | "ab" or "b"                                                  |
+| +         | one or more, greedy                                                               | a+       | one or more "a"                                              |
+| \*        | zero or more, greedy                                                              | a*       | zero or more "a"                                             |
+| {x,y}     | will match an expression at least x times and at most y times                     | a{,3}    | at most three "a"                                            |
+|           |                                                                                   | a{2,}    | at minimum two "a"                                           |
+|           |                                                                                   | a{1,3}   | between one and three "a"                                    |
+| ()        | allows grouping of regular expressions                                            | (a\|b)\* | will match with "a" or "b" zero or more times                |
+| \[\]      | will match with any characters or ranges in the set                               | \[ac-e\] | will match with "a", "c'", "d", "e"                          |
+| \[^\]     | will match with any characters not in the set                                     | \[^ab\]  | will match with any character that is not "a" or "b"         |
+| a-z       | a range, used in a set, ranges can only be defined with alphanumerical characters | \[0-z\]  | will match will all numbers and upper and lower case letters |
 
 ## License
 
