@@ -18,6 +18,26 @@ pub enum SyntaxType {
     Any,
 }
 
+impl SyntaxType {
+    #[cfg(test)]
+    pub fn to_string(&self) -> String {
+        match self {
+            SyntaxType::ZeroOrMore => "ZeroOrMore".to_string(),
+            SyntaxType::Optional => "Optional".to_string(),
+            SyntaxType::OneOrMore => "OneOrMore".to_string(),
+            SyntaxType::Once => "Once".to_string(),
+            SyntaxType::Or => "Or".to_string(),
+            SyntaxType::From(min) => format!("From {}", min),
+            SyntaxType::To(max) => format!("To {}", max),
+            SyntaxType::Between(min, max) => format!("Between {} and {}", min, max),
+            SyntaxType::Symbol(char) => format!("Symbol {}", char),
+            SyntaxType::Set(set) => set.iter().map(|symbol| symbol.to_string()).collect::<Vec<String>>().join(", "),
+            SyntaxType::NotSet(set) => format!("not {}",set.iter().map(|symbol| symbol.to_string()).collect::<Vec<String>>().join(", ")),
+            SyntaxType::Any => "Any".to_string(),
+        }
+    }
+}
+
 /*
 L(Ø) = {}
 L(ε) = {}
@@ -51,20 +71,38 @@ pub struct AST {
 
 impl AST {
     #[cfg(test)]
-    pub fn to_string(&self) -> String{
-        let mut out = vec![];
-        let start_node = self.nodes.get(self.start_node).unwrap();
-
-        out.push('(');
-
-        for child in &start_node.children {
-            self.to_string_helper(self.nodes.get(*child).unwrap(), &mut out);
+    pub fn to_string(&self, lisp: bool) -> String{
+        if lisp {
+            let mut out = vec![];
+            let start_node = self.nodes.get(self.start_node).unwrap();
+    
+            out.push('(');
+    
+            for child in &start_node.children {
+                self.to_string_helper(self.nodes.get(*child).unwrap(), &mut out);
+            }
+    
+            AST::push_token(&start_node.node_type, &mut out);
+            out.push(')');
+    
+            out.iter().collect()
+        } else {
+            let mut out = vec![];
+            AST::push_string("```mermaid\n", &mut out);
+            AST::push_string("flowchart LR\n", &mut out);
+    
+            for (i, node) in self.nodes.as_ref().iter().enumerate() {
+                AST::push_string(&format!("\t{}({})\n", i, node.node_type.to_string()), &mut out);
+    
+                for nex_node in &node.children {
+                    AST::push_string(&format!("\t{}-->{}\n", i, nex_node), &mut out);
+                }
+            }
+    
+            AST::push_string("```\n", &mut out);
+            
+            out.iter().collect()
         }
-
-        AST::push_token(&start_node.node_type, &mut out);
-        out.push(')');
-
-        out.iter().collect()
     }
 
     #[cfg(test)]
@@ -84,6 +122,13 @@ impl AST {
     fn push_token(token: &SyntaxType, out: &mut Vec<char>) {
         let name = format!("{:?}", token);
         for c in name.chars() {
+            out.push(c);
+        }
+    }
+
+    #[cfg(test)]
+    fn push_string(string: &str, out: &mut Vec<char>) {
+        for c in string.chars() {
             out.push(c);
         }
     }
@@ -279,8 +324,18 @@ fn parse_symbol(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usiz
 }
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+    use std::io::prelude::*;
+
     use crate::lexer::Lexer;
     use super::parse_regex;
+
+    #[test]
+    fn output_diagram() {
+        let mut file = File::create("ast-compiled.md").unwrap();
+        writeln!(&mut file, "{}", parse_regex(&mut Lexer::new("a(b|c)")).unwrap().to_string(false)).unwrap();
+    }
+
 
     #[test]
     fn test() {
@@ -295,7 +350,7 @@ mod tests {
     }
 
     fn parse(string:&str) -> String {
-        parse_regex(&mut Lexer::new(string)).unwrap().to_string()
+        parse_regex(&mut Lexer::new(string)).unwrap().to_string(true)
     }
 }
 
