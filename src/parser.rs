@@ -230,10 +230,40 @@ fn parse_symbol(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usiz
                 Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Symbol(c), children: vec![]}))
             },
             Token::Set(set) => {
+                for symbol in &set {
+                    if let SetSymbol::Range(start, end) = symbol {
+                        if *start >= '0' as u32 && *start <= 'z'  as u32 {
+                            if *end >= '0' as u32 && *end <= 'z'  as u32  {
+                                if  start > end{
+                                    return Err(ParseError::new("the numeric value of start must be less than end in a range"))
+                                }
+                            } else {
+                                return Err(ParseError::new("the start and end of a range must a alphanumeric"))
+                            }
+                        } else {
+                            return Err(ParseError::new("the start and end of a range must a alphanumeric"))
+                        }
+                    }
+                }
                 lexer.next();
                 Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Set(set), children: vec![]}))
             },
             Token::NotSet(set) => {
+                for symbol in &set {
+                    if let SetSymbol::Range(start, end) = symbol {
+                        if *start >= '0' as u32 && *start <= 'z'  as u32 {
+                            if *end >= '0' as u32 && *end <= 'z'  as u32  {
+                                if  start > end{
+                                    return Err(ParseError::new("the numeric value of start must be less than end in a range"))
+                                }
+                            } else {
+                                return Err(ParseError::new("the start and end of a range must a alphanumeric"))
+                            }
+                        } else {
+                            return Err(ParseError::new("the start and end of a range must a alphanumeric"))
+                        }
+                    }
+                }
                 lexer.next();
                 Ok(push_node(nodes, ASTNode{node_type: SyntaxType::NotSet(set), children: vec![]}))
             },
@@ -258,7 +288,7 @@ mod tests {
         assert_eq!(parse("(ab)cd"), "(((Symbol('a'))(Symbol('b'))Once)(Symbol('c'))(Symbol('d'))Once)");
         assert_eq!(parse("a+c*d+e?"), "(((Symbol('a'))OneOrMore)((Symbol('c'))ZeroOrMore)((Symbol('d'))OneOrMore)((Symbol('e'))Optional)Once)");
         assert_eq!(parse("a{1,}c{,1}d{2,3}"), "(((Symbol('a'))From(1))((Symbol('c'))To(1))((Symbol('d'))Between(2, 3))Once)");
-        assert_eq!(parse("[ab-z][^ab-z]"), "((Set([Char('a'), Range('b', 'z')]))(NotSet([Char('a'), Range('b', 'z')]))Once)");
+        assert_eq!(parse("[ab-z][^ab-z]"), "((Set([Char('a'), Range(98, 122)]))(NotSet([Char('a'), Range(98, 122)]))Once)");
         assert_eq!(parse("(ab)*cd+"), "((((Symbol('a'))(Symbol('b'))Once)ZeroOrMore)(Symbol('c'))((Symbol('d'))OneOrMore)Once)");
         assert_eq!(parse("ab|cd"), "((((Symbol('a'))(Symbol('b'))Once)((Symbol('c'))(Symbol('d'))Once)Or)Once)");
         assert_eq!(parse("(a)+b|c*d"), "((((((Symbol('a'))Once)OneOrMore)(Symbol('b'))Once)(((Symbol('c'))ZeroOrMore)(Symbol('d'))Once)Or)Once)");

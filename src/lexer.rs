@@ -1,7 +1,7 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum SetSymbol {
     Char(char),
-    Range(char, char),
+    Range(u32, u32),
 }
 
 impl SetSymbol {
@@ -176,7 +176,7 @@ impl ComplexParse for ParseSet {
                     match data.last_mut().unwrap() {
                         SetSymbol::Char(c) => {
                             lexer.index += 1;
-                            let symbol = SetSymbol::Range(*c, *lexer.data.get(lexer.index).unwrap());
+                            let symbol = SetSymbol::Range(*c as u32, *lexer.data.get(lexer.index).unwrap() as u32);
                             *data.last_mut().unwrap() = symbol;
                         },
                         SetSymbol::Range(_, _) => {
@@ -344,8 +344,8 @@ mod tests {
             Token::To(2),
             Token::From(2),
             Token::Between(2,6),
-            Token::Set(vec![SetSymbol::Char('a'), SetSymbol::Range('b', 'z')]),
-            Token::NotSet(vec![SetSymbol::Char('a'), SetSymbol::Range('b', 'z')]),
+            Token::Set(vec![SetSymbol::Char('a'), SetSymbol::Range('b' as u32, 'z' as u32)]),
+            Token::NotSet(vec![SetSymbol::Char('a'), SetSymbol::Range('b' as u32, 'z' as u32)]),
         ];
 
         for expected in expected_tokens {
