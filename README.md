@@ -136,23 +136,25 @@ flowchart LR
     5(Accept)
 ```
 
-#### a{1,3}
+#### a{2,4}
 
 ```mermaid
 flowchart LR
-    0(None)
-    0-->1
-    1('a')
-    1-->2
-    1-->3
-    2(None)
-    2-->5
-    3('a')
-    3-->2
-    3-->4
-    4('a')
-    4-->2
-    5(Accept)
+	0(None)
+	0-->1
+	1('a')
+	1-->2
+	2('a')
+	2-->3
+	2-->4
+	3(None)
+	3-->6
+	4('a')
+	4-->3
+	4-->5
+	5('a')
+	5-->3
+	6(Accept)
 ```
 
 #### [ac-d]
@@ -190,9 +192,9 @@ flowchart LR
 |        |                                                                                   | a{2,}    | at minimum two "a"                                           |
 |        |                                                                                   | a{1,3}   | between one and three "a"                                    |
 | ()     | allows grouping of regular expressions                                            | (a\|b)\* | will match with "a" or "b" zero or more times                |
-| []     | will match with any characters or ranges in the set                               | [ac-e]   | will match with "a", "c'", "d", "e"                          |
-| [^]    | will match with any characters not in the set                                     | [^ab]    | will match with any character that is not "a" or "b"         |
-| a-z    | a range, used in a set, ranges can only be defined with alphanumerical characters | [0-z]    | will match will all numbers and upper and lower case letters |
+| \[\]     | will match with any characters or ranges in the set                               | \[ac-e\]   | will match with "a", "c'", "d", "e"                          |
+| \[^\]    | will match with any characters not in the set                                     | \[^ab\]    | will match with any character that is not "a" or "b"         |
+| a-z    | a range, used in a set, ranges can only be defined with alphanumerical characters | \[0-z\]    | will match will all numbers and upper and lower case letters |
 
 ## License
 
