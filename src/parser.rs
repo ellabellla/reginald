@@ -1,6 +1,6 @@
 use std::{fmt::Display, vec};
 
-use crate::lexer::{Lexer, Token};
+use crate::lexer::{Lexer, Token, SetSymbol};
 
 #[derive(Debug)]
 pub enum SyntaxType {
@@ -9,7 +9,13 @@ pub enum SyntaxType {
     OneOrMore,
     Once,
     Or,
+    From(usize),
+    To(usize),
+    Between(usize, usize),
     Symbol(char),
+    Set(Vec<SetSymbol>),
+    NotSet(Vec<SetSymbol>),
+    Any,
 }
 
 /*
@@ -153,15 +159,40 @@ fn parse_value(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize
 
     let next_token = lexer.peek();
     if let Some(next_token) = next_token {
-        if matches!(next_token, Token::ZeroOrMore) {
-            lexer.next();
-            regex = push_node(nodes, ASTNode{node_type:SyntaxType::ZeroOrMore, children: vec![regex]})
-        } else if matches!(next_token, Token::OneOrMore) {
-            lexer.next();
-            regex = push_node(nodes, ASTNode{node_type:SyntaxType::OneOrMore, children: vec![regex]})
-        } else if matches!(next_token, Token::Optional) {
-            lexer.next();
-            regex = push_node(nodes, ASTNode{node_type:SyntaxType::Optional, children: vec![regex]})
+        match next_token {
+            Token::ZeroOrMore => {
+                lexer.next();
+                regex = push_node(nodes, ASTNode{node_type:SyntaxType::ZeroOrMore, children: vec![regex]})
+            },
+            Token::Optional => {
+                lexer.next();
+                regex = push_node(nodes, ASTNode{node_type:SyntaxType::Optional, children: vec![regex]})
+            },
+            Token::OneOrMore => {
+                lexer.next();
+                regex = push_node(nodes, ASTNode{node_type:SyntaxType::OneOrMore, children: vec![regex]})
+            },
+            Token::From(num) => {
+                lexer.next();
+                regex = push_node(nodes, ASTNode{node_type:SyntaxType::From(num), children: vec![regex]})
+            },
+            Token::To(num) => {
+                lexer.next();
+                if num == 0 {
+                    return Err(ParseError::new("to must be greater than 0 in range"))
+                }
+                regex = push_node(nodes, ASTNode{node_type:SyntaxType::To(num), children: vec![regex]})
+            },
+            Token::Between(from, to) => {
+                lexer.next();
+                if from > to {
+                    return Err(ParseError::new("from must be lower or equal to to in range"))
+                } else if to == 0 {
+                    return Err(ParseError::new("to must be greater than 0 in range"))
+                }
+                regex = push_node(nodes, ASTNode{node_type:SyntaxType::Between(from, to), children: vec![regex]})
+            },
+            _ => (),
         }
     }
 
@@ -192,10 +223,26 @@ fn parse_bracketed(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<u
 }
 
 fn parse_symbol(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
-    if let Some(Token::Symbol(c)) = lexer.peek() {
-        lexer.next();
-
-        Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Symbol(c), children: vec![]}))
+    if let Some(token) = lexer.peek() {
+        match token {
+            Token::Symbol(c) => {
+                lexer.next();
+                Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Symbol(c), children: vec![]}))
+            },
+            Token::Set(set) => {
+                lexer.next();
+                Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Set(set), children: vec![]}))
+            },
+            Token::NotSet(set) => {
+                lexer.next();
+                Ok(push_node(nodes, ASTNode{node_type: SyntaxType::NotSet(set), children: vec![]}))
+            },
+            Token::Any => {
+                lexer.next();
+                Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Any, children: vec![]}))
+            },
+            _ => Err(ParseError::new("expected symbol"))
+        }
     } else {
         Err(ParseError::new("expected symbol"))
     }
@@ -210,6 +257,8 @@ mod tests {
         assert_eq!(parse("abcd"), "((Symbol('a'))(Symbol('b'))(Symbol('c'))(Symbol('d'))Once)");
         assert_eq!(parse("(ab)cd"), "(((Symbol('a'))(Symbol('b'))Once)(Symbol('c'))(Symbol('d'))Once)");
         assert_eq!(parse("a+c*d+e?"), "(((Symbol('a'))OneOrMore)((Symbol('c'))ZeroOrMore)((Symbol('d'))OneOrMore)((Symbol('e'))Optional)Once)");
+        assert_eq!(parse("a{1,}c{,1}d{2,3}"), "(((Symbol('a'))From(1))((Symbol('c'))To(1))((Symbol('d'))Between(2, 3))Once)");
+        assert_eq!(parse("[ab-z][^ab-z]"), "((Set([Char('a'), Range('b', 'z')]))(NotSet([Char('a'), Range('b', 'z')]))Once)");
         assert_eq!(parse("(ab)*cd+"), "((((Symbol('a'))(Symbol('b'))Once)ZeroOrMore)(Symbol('c'))((Symbol('d'))OneOrMore)Once)");
         assert_eq!(parse("ab|cd"), "((((Symbol('a'))(Symbol('b'))Once)((Symbol('c'))(Symbol('d'))Once)Or)Once)");
         assert_eq!(parse("(a)+b|c*d"), "((((((Symbol('a'))Once)OneOrMore)(Symbol('b'))Once)(((Symbol('c'))ZeroOrMore)(Symbol('d'))Once)Or)Once)");

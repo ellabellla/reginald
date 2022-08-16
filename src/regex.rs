@@ -1,10 +1,13 @@
 use std::mem::swap;
 
-use crate::{parser::{parse_regex, ParseError, SyntaxType, AST}, lexer::Lexer};
+use crate::{parser::{parse_regex, ParseError, SyntaxType, AST}, lexer::{Lexer, SetSymbol}};
 
 #[derive(Debug)]
 enum StateType {
     Symbol(char),
+    Any,
+    Set(Vec<SetSymbol>),
+    NotSet(Vec<SetSymbol>),
     Accept,
     None,
 }
@@ -13,9 +16,12 @@ impl StateType {
     #[cfg(test)]
     pub fn to_string(&self) -> String  {
         match self {
-            StateType::Symbol(c) => format!("{}", c),
+            StateType::Symbol(c) => format!("'{}'", c),
             StateType::Accept => "Accept".to_string(),
             StateType::None => "None".to_string(),
+            StateType::Any => "Any".to_string(),
+            StateType::Set(set) => set.iter().map(|symbol| symbol.to_string()).collect::<Vec<String>>().join(", "),
+            StateType::NotSet(set) => set.iter().map(|symbol| symbol.to_string()).collect::<Vec<String>>().join(", "),
         }
     }
 }
@@ -140,6 +146,7 @@ impl Regex {
                     StateType::None => for next_state in &state.next {
                         stack_back.push((index, *next_state));
                     },
+                    _ => todo!()
                 }
             }
 
@@ -167,7 +174,13 @@ impl Regex {
             SyntaxType::OneOrMore => self.compile_one_or_more(prev_state, ast, ast_node),
             SyntaxType::Once => self.compile_once(prev_state, ast, ast_node),
             SyntaxType::Or => self.compile_or(prev_state, ast, ast_node),
-            SyntaxType::Symbol(_) => self.compile_symbol(prev_state, ast, ast_node),
+            SyntaxType::From(_) => self.compile_from(prev_state, ast, ast_node),
+            SyntaxType::To(_) => self.compile_to(prev_state, ast, ast_node),
+            SyntaxType::Between(_, _) => self.compile_between(prev_state, ast, ast_node),
+            SyntaxType::Symbol(_) => self.compile_atomic(prev_state, ast, ast_node),
+            SyntaxType::Set(_) => self.compile_atomic(prev_state, ast, ast_node),
+            SyntaxType::NotSet(_) => self.compile_atomic(prev_state, ast, ast_node),
+            SyntaxType::Any => self.compile_atomic(prev_state, ast, ast_node),
         }
     }
 
@@ -240,19 +253,97 @@ impl Regex {
         state
     }
 
-    fn compile_symbol(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
-        let node = ast.nodes.get(ast_node).unwrap();
-        if let SyntaxType::Symbol(symbol) = node.node_type {
-            self.states.nodes.push(StateNode{ state_type: StateType::Symbol(symbol), next: vec![] });
-            let state = self.states.nodes.len() - 1;
+    fn compile_from(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
+        if let SyntaxType::From(from)= ast.nodes.get(ast_node).unwrap().node_type {
+            if from == 0 {
+                self.compile_one_or_more(prev_state, ast, ast_node)
+            } else {
+                let node = ast.nodes.get(ast_node).unwrap();
 
-            let prev_state = self.states.nodes.get_mut(prev_state).unwrap();
-            prev_state.next.push(state);
+                let mut next_state = prev_state;
+                let mut begin_state = prev_state;
 
-            state
+                for _ in 0..from {
+                    begin_state = next_state;
+                    next_state = self.compile_next(next_state, ast, node.children[0]);
+                }
+
+                let next_state_node = self.states.nodes.get_mut(next_state).unwrap();
+                next_state_node.next.push(begin_state);
+        
+                next_state
+            }
         } else {
             unreachable!()
         }
+    }
+
+    fn compile_to(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
+        if let SyntaxType::To(to)= ast.nodes.get(ast_node).unwrap().node_type {
+            let node = ast.nodes.get(ast_node).unwrap();
+                self.states.nodes.push(StateNode{ state_type: StateType::None, next: vec![] });
+                let state = self.states.nodes.len() - 1;
+
+                let mut next_state = prev_state;
+                let next_state_node = self.states.nodes.get_mut(next_state).unwrap();
+                next_state_node.next.push(state);
+
+                for _ in 0..to {
+                    next_state = self.compile_next(next_state, ast, node.children[0]);
+
+                    let next_state_node = self.states.nodes.get_mut(next_state).unwrap();
+                    next_state_node.next.push(state);
+                }
+                state
+        } else {
+            unreachable!()
+        }
+    }
+
+    fn compile_between(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
+        if let SyntaxType::Between(from, to)= ast.nodes.get(ast_node).unwrap().node_type {
+            let node = ast.nodes.get(ast_node).unwrap();
+
+                let mut next_state = prev_state;
+                
+                for _ in 0..from {
+                    next_state = self.compile_next(next_state, ast, node.children[0]);
+                }
+
+                self.states.nodes.push(StateNode{ state_type: StateType::None, next: vec![] });
+                let state = self.states.nodes.len() - 1;
+                let next_state_node = self.states.nodes.get_mut(next_state).unwrap();
+                next_state_node.next.push(state);
+
+                for _ in from..to {
+                    next_state = self.compile_next(next_state, ast, node.children[0]);
+
+                    let next_state_node = self.states.nodes.get_mut(next_state).unwrap();
+                    next_state_node.next.push(state);
+                }
+
+                state
+        } else {
+            unreachable!()
+        }
+    }
+
+    fn compile_atomic(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
+        let node = ast.nodes.get(ast_node).unwrap();
+        let state_type = match &node.node_type {
+            SyntaxType::Symbol(c) => StateType::Symbol(c.clone()),
+            SyntaxType::Set(set) => StateType::Set(set.clone()),
+            SyntaxType::NotSet(set) => StateType::NotSet(set.clone()),
+            SyntaxType::Any => StateType::Any,
+            _ => unreachable!(),
+        };
+        self.states.nodes.push(StateNode{ state_type, next: vec![] });
+        let state = self.states.nodes.len() - 1;
+
+        let prev_state = self.states.nodes.get_mut(prev_state).unwrap();
+        prev_state.next.push(state);
+
+        state
     }
 }
 
@@ -266,7 +357,7 @@ mod tests {
 
     #[test]
     fn output_diagram() {
-        let regex = Regex::compile("a+(b|c)").unwrap();
+        let regex = Regex::compile("(a+b){3,}.[123][a-z1 ]").unwrap();
 
         let mut file = File::create("regex-compiled.md").unwrap();
         writeln!(&mut file, "{}", &regex.states.to_string()).unwrap();
