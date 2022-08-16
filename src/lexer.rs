@@ -9,7 +9,7 @@ impl SetSymbol {
     pub fn to_string(&self) -> String {
         match self {
             SetSymbol::Char(c) => format!("'{}'", c),
-            SetSymbol::Range(start, end) => format!("'{}'-'{}'", start, end),
+            SetSymbol::Range(start, end) => format!("c{}-c{}", start, end),
         }
     }
 }
