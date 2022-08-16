@@ -36,7 +36,6 @@ A very simple regular expression engine written in rust.
 #### a\|b
 
 ```mermaid
-```mermaid
 flowchart LR
 	0(None)
 	0-->1
@@ -48,9 +47,6 @@ flowchart LR
 	3(None)
 	3-->4
 	4(Accept)
-```
-
-
 ```
 
 #### .
