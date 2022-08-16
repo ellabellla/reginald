@@ -2,9 +2,7 @@
 
 # Reginald: A from scratch Regular Expression Engine
 
-A very simple regular expression engine written in rust.  
-
-# 
+A very simple regular expression engine written in rust.   
 
 ## How it Works
 
@@ -32,6 +30,152 @@ A very simple regular expression engine written in rust.
 | NotSet | Any character not in the set will be matched and the state machine will continue                           |
 | Accept | A ending state for the state machine                                                                       |
 | None   | Used as a connected point between states and is otherwise ignored when simulating the state machine.       |
+
+### Building blocks
+
+#### a\|b
+
+```mermaid
+```mermaid
+flowchart LR
+	0(None)
+	0-->1
+	0-->2
+	1('a')
+	1-->3
+	2('b')
+	2-->3
+	3(None)
+	3-->4
+	4(Accept)
+```
+
+
+```
+
+#### .
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    1(Any)
+    1-->2
+    2(Accept)
+```
+
+#### a?
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    0-->2
+    1('a')
+    1-->2
+    2(None)
+    2-->3
+    3(Accept)
+```
+
+#### a+
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    1('a')
+    1-->0
+    1-->2
+    2(Accept)
+```
+
+#### a*
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    0-->2
+    1('a')
+    1-->0
+    2(Accept)
+```
+
+#### a{,3}
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    0-->2
+    1(None)
+    1-->5
+    2('a')
+    2-->1
+    2-->3
+    3('a')
+    3-->1
+    3-->4
+    4('a')
+    4-->1
+    5(Accept)
+```
+
+#### a{2,}
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    1('a')
+    1-->2
+    2('a')
+    2-->1
+    2-->3
+    3(Accept)
+```
+
+#### a{1,3}
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    1('a')
+    1-->2
+    1-->3
+    2(None)
+    2-->5
+    3('a')
+    3-->2
+    3-->4
+    4('a')
+    4-->2
+    5(Accept)
+```
+
+#### [ac-d]
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    1('a', c99-c100)
+    1-->2
+    2(Accept)
+```
+
+#### [^ac-d]
+
+```mermaid
+flowchart LR
+    0(None)
+    0-->1
+    1(not 'a', c99-c100)
+    1-->2
+    2(Accept)
+```
 
 ## Syntax
 
