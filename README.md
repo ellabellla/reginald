@@ -18,6 +18,137 @@ A very simple regular expression engine written in rust.
 
 6. The state machine is simulated with the input to determine if a string is apart of the language the regular expression defines
 
+## The Abstract Syntax Tree
+
+### Nodes
+
+| Node                | Description                                                                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| ZeroOrMore          | Has only one child node, Represents "\*"                                                                                                       |
+| Optional            | Has only one child node, Represents "?"                                                                                                        |
+| OneOrMore           | Has only one child node, Represent "+"                                                                                                         |
+| Once                | Can have multiple children. Represents Concatenation. Is also the root of the AST.                                                             |
+| Or                  | Can have multiple children. Represents "\|"                                                                                                    |
+| From(min)           | Has only one child node, Represents "{min,}".                                                                                                  |
+| To(max)             | Has only one child node, Represents "{,max}". "max" cannot be zero                                                                             |
+| Between(min, max)   | Has only one child node, Represents "{min,max}". "max" cannot be zero. "min" cannot be greater than "max"                                      |
+| Symbol(char)        | Has no child nodes. Represents a character to match                                                                                            |
+| Set([SetSymbol])    | Has one child. Represent "[ac-b]". Ranges are converted to the corresponding ascii numbers. Only ranges using 0-9, a-z, and A-Z are accepted.  |
+| NotSet([SetSymbol]) | Has one child. Represent "[^ac-b]". Ranges are converted to the corresponding ascii numbers. Only ranges using 0-9, a-z, and A-Z are accepted. |
+| Any                 | Has no children. Represent ".".                                                                                                                |
+
+### Building Blocks
+
+#### a\|b
+
+```mermaid
+flowchart LR
+    0(Symbol a)
+    1(Once)
+    1-->0
+    2(Symbol b)
+    3(Once)
+    3-->2
+    4(Or)
+    4-->1
+    4-->3
+    5(Once)
+    5-->4
+```
+
+#### .
+
+```mermaid
+flowchart LR
+    0(Any)
+    1(Once)
+    1-->0
+```
+
+#### a?
+
+```mermaid
+flowchart LR
+    0(Symbol a)
+    1(Optional)
+    1-->0
+    2(Once)
+    2-->1
+```
+
+#### a+
+
+```mermaid
+flowchart LR
+    0(Symbol a)
+    1(OneOrMore)
+    1-->0
+    2(Once)
+    2-->1
+```
+
+#### a*
+
+```mermaid
+flowchart LR
+    0(Symbol a)
+    1(ZeroOrMore)
+    1-->0
+    2(Once)
+    2-->1
+```
+
+#### a{,3}
+
+```mermaid
+flowchart LR
+    0(Symbol a)
+    1(To 3)
+    1-->0
+    2(Once)
+    2-->1
+```
+
+#### a{2,}
+
+```mermaid
+flowchart LR
+    0(Symbol a)
+    1(From 2)
+    1-->0
+    2(Once)
+    2-->1
+```
+
+#### a{2,4}
+
+```mermaid
+flowchart LR
+    0(Symbol a)
+    1(Between 2 and 4)
+    1-->0
+    2(Once)
+    2-->1
+```
+
+#### [ac-d]
+
+```mermaid
+flowchart LR
+    0('a', c99-c100)
+    1(Once)
+    1-->0
+```
+
+#### [^ac-d]
+
+```mermaid
+flowchart LR
+    0(not 'a', c99-c100)
+    1(Once)
+    1-->0
+```
+
 ## The State Machine
 
 ### States
@@ -37,16 +168,16 @@ A very simple regular expression engine written in rust.
 
 ```mermaid
 flowchart LR
-	0(None)
-	0-->1
-	0-->2
-	1('a')
-	1-->3
-	2('b')
-	2-->3
-	3(None)
-	3-->4
-	4(Accept)
+    0(None)
+    0-->1
+    0-->2
+    1('a')
+    1-->3
+    2('b')
+    2-->3
+    3(None)
+    3-->4
+    4(Accept)
 ```
 
 #### .
@@ -140,21 +271,21 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-	0(None)
-	0-->1
-	1('a')
-	1-->2
-	2('a')
-	2-->3
-	2-->4
-	3(None)
-	3-->6
-	4('a')
-	4-->3
-	4-->5
-	5('a')
-	5-->3
-	6(Accept)
+    0(None)
+    0-->1
+    1('a')
+    1-->2
+    2('a')
+    2-->3
+    2-->4
+    3(None)
+    3-->6
+    4('a')
+    4-->3
+    4-->5
+    5('a')
+    5-->3
+    6(Accept)
 ```
 
 #### [ac-d]
@@ -192,9 +323,9 @@ flowchart LR
 |        |                                                                                   | a{2,}    | at minimum two "a"                                           |
 |        |                                                                                   | a{1,3}   | between one and three "a"                                    |
 | ()     | allows grouping of regular expressions                                            | (a\|b)\* | will match with "a" or "b" zero or more times                |
-| \[\]     | will match with any characters or ranges in the set                               | \[ac-e\]   | will match with "a", "c'", "d", "e"                          |
-| \[^\]    | will match with any characters not in the set                                     | \[^ab\]    | will match with any character that is not "a" or "b"         |
-| a-z    | a range, used in a set, ranges can only be defined with alphanumerical characters | \[0-z\]    | will match will all numbers and upper and lower case letters |
+| \[\]   | will match with any characters or ranges in the set                               | \[ac-e\] | will match with "a", "c'", "d", "e"                          |
+| \[^\]  | will match with any characters not in the set                                     | \[^ab\]  | will match with any character that is not "a" or "b"         |
+| a-z    | a range, used in a set, ranges can only be defined with alphanumerical characters | \[0-z\]  | will match will all numbers and upper and lower case letters |
 
 ## License
 
