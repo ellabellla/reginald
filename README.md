@@ -320,7 +320,8 @@ digit = [0-9];
 num = digit+;
 
 set = '[' '^'? (char | char '-' char)+ ']';
-value = ('.' | char | '(' regex ')' | set) ('?' | '*' | '+' | '{' num? ',' num? '}' );
+between = '{' num ',' '}' | '{' ',' num '}' | '{' num ',' num '}';
+value = ('.' | char | '(' regex ')' | set) ('?' | '*' | '+' | between );
 
 regex = value+ ('|' value+)*;
 ```
