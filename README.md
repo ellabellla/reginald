@@ -4,6 +4,41 @@
 
 A very simple regular expression engine written in rust.   
 
+## Usage
+
+```
+reginald 0.1.0
+A very simple regular expression engine written in rust.
+
+USAGE:
+    reginald [OPTIONS] <COMMAND> <REGEX> [REPLACE_STR]
+
+ARGS:
+    <COMMAND>        [possible values: match, matches, is]
+    <REGEX>          
+    <REPLACE_STR>    
+
+OPTIONS:
+    -h, --help             Print help information
+    -i, --input <INPUT>    
+    -V, --version          Print version information
+
+```
+
+### Install
+
+```bash
+git clone https://github.com/ellabellla/reginald.git
+cd reginald
+cargo install --path "./"
+```
+
+### Uninstall
+
+```bash
+cargo uninstall reginald
+```
+
 ## How it Works
 
 1. A regular expression is inputted as a string into a Lexer
