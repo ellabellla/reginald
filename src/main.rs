@@ -5,10 +5,11 @@ use reginald_lib::regex::{Regex};
 
 #[derive(Parser)]
 struct Cli {
-    regex:String,
-    #[clap(arg_enum, default_value_t = Commands::MATCHES)]
+    #[clap(arg_enum)]
     command: Commands,
-    #[clap(parse(from_os_str))]
+    regex:String,
+    replace_str: Option<String>,
+    #[clap(short, long, parse(from_os_str))]
     input: Option<std::path::PathBuf>,
 }
 
@@ -30,7 +31,7 @@ fn main() {
                 return;
             }
 
-            let mut file = handle_error(File::create(path));
+            let mut file = handle_error(File::open(path));
             let mut input = String::new();
             handle_error(file.read_to_string(&mut input));
             input
@@ -55,8 +56,31 @@ fn main() {
     };
     
     let input = input.chars().collect::<Vec<char>>();
-    for (start, size) in matches {
-        println!("{}", input[start..(start+size)].iter().collect::<String>())
+    match cli.replace_str {
+        Some(replace_str) => {
+            let mut matches = matches.iter().peekable();
+            let mut i = 0;
+            while i < input.len() {
+                if let Some((start, size)) = matches.peek() {
+                    if i < *start {
+                        print!("{}", input[i..*start].iter().collect::<String>());
+                        i = *start;
+                    } else if *start == i {
+                        print!("{}", replace_str);
+                        i = *size + start;
+                        matches.next();
+                    } else {
+                        unreachable!()
+                    }
+                } else {
+                    print!("{}", input[i..input.len()].iter().collect::<String>());
+                    break;
+                }
+            }
+        },
+        None => for (start, size) in matches {
+            println!("{}", input[start..(start+size)].iter().collect::<String>())
+        },
     }
 }
 
