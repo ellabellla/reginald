@@ -77,22 +77,25 @@ init()
             if (regex) {
                 let text = runText.innerText;
                 let replace_text = replaceInput.value;
+                let output = "";
                 let slices = regex.matches(text);
                 let len = slices.len();
                 let text_index = 0;
                 for (let i = 0; i < len; i++) {
                     let slice = slices.get(i);
                     if (text_index < slice.start) {
-                        outputText.innerText += text.slice(text_index, slice.start);
+                        output += text.slice(text_index, slice.start);
                         text_index = slice.start;
                     }
-                    outputText.innerText += replace_text;
+                    output += replace_text;
                     text_index += slice.size;
                 }
 
                 if (text_index < text.length) {
-                    outputText.innerText += text.slice(text_index, text.length);
+                    output += text.slice(text_index, text.length);
                 }
+
+                outputText.innerText = output;
             }
         });
 
