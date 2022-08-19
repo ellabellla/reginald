@@ -40,6 +40,7 @@ fn main() {
             let mut stdin = io::stdin();
             let mut input = String::new();
             handle_error(stdin.read_to_string(&mut input));
+            input.pop();
             input
         },
     };
@@ -52,7 +53,7 @@ fn main() {
             }
         },
         Commands::MATCHES => regex.matches(&input),
-        Commands::IS => if !regex.test(&input) {vec![(0,input.len())]} else {vec![]},
+        Commands::IS => if regex.test(&input) {vec![(0,input.len())]} else {vec![]},
     };
     
     let input = input.chars().collect::<Vec<char>>();
@@ -67,7 +68,7 @@ fn main() {
                         i = *start;
                     } else if *start == i {
                         print!("{}", replace_str);
-                        i = *size + start;
+                        i += *size;
                         matches.next();
                     } else {
                         unreachable!()
@@ -77,6 +78,7 @@ fn main() {
                     break;
                 }
             }
+            println!("");
         },
         None => for (start, size) in matches {
             println!("{}", input[start..(start+size)].iter().collect::<String>())
