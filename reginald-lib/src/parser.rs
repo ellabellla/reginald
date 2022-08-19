@@ -144,6 +144,16 @@ fn push_node(nodes: &mut Box<Vec<ASTNode>>, node: ASTNode) -> usize{
     nodes.len() - 1
 }
 
+fn create_fallback(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> (usize, usize) {
+    (lexer.pos(), nodes.len())
+}
+
+fn use_fallback(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>, fallback: (usize, usize)) {
+    let (pos, len) = fallback;
+    lexer.seek(pos);
+    nodes.truncate(len);
+}
+
 pub fn parse_regex(lexer: &mut Lexer) -> Result<AST, ParseError> {
     let mut nodes = Box::new(vec![]);
     
@@ -165,7 +175,7 @@ fn parse_regex_helper(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Resul
 }
 
 fn parse_or(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
-    let fallback = lexer.pos();
+    let fallback = create_fallback(lexer, nodes);
 
     let mut children = vec![parse_concat(lexer, nodes)?];
 
@@ -175,7 +185,7 @@ fn parse_or(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, P
     }
 
     if children.len() == 1 {
-        lexer.seek(fallback);
+        use_fallback(lexer, nodes, fallback);
         Err(ParseError::new("expected or"))
     } else {
         Ok(push_node(nodes, ASTNode{node_type: SyntaxType::Or, children}))
@@ -193,11 +203,11 @@ fn parse_concat(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usiz
 }
 
 fn parse_value(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
-    let fallback = lexer.pos();
+    let fallback = create_fallback(lexer, nodes);
 
     let mut regex = parse_symbol(lexer, nodes)
     .or_else(|_| {
-        lexer.seek(fallback);
+        use_fallback(lexer, nodes, fallback);
         parse_bracketed(lexer, nodes)
     })?;
 
@@ -245,7 +255,7 @@ fn parse_value(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize
 }
 
 fn parse_bracketed(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<usize, ParseError> {
-    let fallback = lexer.pos();
+    let fallback = create_fallback(lexer, nodes);
 
     if let Some(Token::OpenParenthesis) = lexer.peek() {
         lexer.next();
@@ -258,11 +268,11 @@ fn parse_bracketed(lexer: &mut Lexer, nodes: &mut Box<Vec<ASTNode>>) -> Result<u
         if let Some(Token::CloseParenthesis) = lexer.next() {
             res
         } else {
-            lexer.seek(fallback);
+            use_fallback(lexer, nodes, fallback);
             Err(ParseError::new("expected regex"))
         }
     } else {
-        lexer.seek(fallback);
+        use_fallback(lexer, nodes, fallback);
         Err(ParseError::new("expected closing parenthesis"))
     }
 }
