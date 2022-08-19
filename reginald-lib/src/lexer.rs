@@ -5,7 +5,6 @@ pub enum SetSymbol {
 }
 
 impl SetSymbol {
-    #[cfg(test)]
     pub fn to_string(&self) -> String {
         match self {
             SetSymbol::Char(c) => format!("'{}'", c),

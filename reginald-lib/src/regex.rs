@@ -13,7 +13,6 @@ enum StateType {
 }
 
 impl StateType {
-    #[cfg(test)]
     pub fn to_string(&self) -> String  {
         match self {
             StateType::Symbol(c) => format!("'{}'", c),
@@ -32,7 +31,6 @@ struct States {
 }
 
 impl States {
-    #[cfg(test)]
     pub fn to_string(&self) -> String{
         let mut out = vec![];
         States::push_string("```mermaid\n", &mut out);
@@ -51,7 +49,6 @@ impl States {
         out.iter().collect()
     }
     
-    #[cfg(test)]
     fn push_string(string: &str, out: &mut Vec<char>) {
         for c in string.chars() {
             out.push(c);
@@ -117,6 +114,10 @@ impl Regex {
         }
 
         return None
+    }
+
+    pub fn to_string(&self) -> String {
+        self.states.to_string()
     }
 
 
