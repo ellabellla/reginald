@@ -18,7 +18,7 @@ struct Cli {
 enum Commands {
     MATCH,
     MATCHES,
-    IS,
+    TEST,
 }
 
 fn main() {
@@ -54,7 +54,7 @@ fn main() {
             }
         },
         Commands::MATCHES => regex.matches(&input),
-        Commands::IS => if regex.test(&input) {vec![(0,input.len())]} else {vec![]},
+        Commands::TEST => if regex.test(&input) {vec![(0,input.len())]} else {vec![]},
     };
     
     let input = input.chars().collect::<Vec<char>>();
