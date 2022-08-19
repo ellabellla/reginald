@@ -4,6 +4,7 @@ use clap::{Parser, ValueEnum};
 use reginald_lib::regex::{Regex};
 
 #[derive(Parser)]
+#[clap(version, about, long_about = None)]
 struct Cli {
     #[clap(arg_enum)]
     command: Commands,
