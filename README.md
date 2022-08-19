@@ -28,9 +28,7 @@ OPTIONS:
 ### Install
 
 ```bash
-git clone https://github.com/ellabellla/reginald.git
-cd reginald
-cargo install --path "./"
+cargo install --git https://github.com/ellabellla/reginald 
 ```
 
 ### Uninstall
