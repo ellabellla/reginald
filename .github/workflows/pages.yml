@@ -35,7 +35,7 @@ jobs:
         with:
           version: "latest"
       - name: Run Build
-        run: ./build-wasm.sh
+        run: ./build-pkg.sh
       - name: Setup Pages
         uses: actions/configure-pages@v1
       - name: Upload artifact
