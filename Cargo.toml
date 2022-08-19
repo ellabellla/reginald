@@ -13,7 +13,7 @@ A very simple regular expression engine written in rust.
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["reginald-lib", "./"]
+members = ["reginald-lib", "reginald-wasm", "./"]
 
 [dependencies]
 reginald-lib = { path = "./reginald-lib" }

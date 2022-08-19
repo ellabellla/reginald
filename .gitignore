@@ -1,4 +1,6 @@
 /target
 /reginald-lib/target
+/reginald-wasm/target
+/reginald-wasm/pkg
 regex-compiled.md
 ast-compiled.md
