@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'regex'",
+            "name": "Debug executable 'reginald'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=regex",
-                    "--package=regex"
+                    "--bin=reginald",
+                    "--package=reginald",
                 ],
                 "filter": {
-                    "name": "regex",
+                    "name": "reginald",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'regex'",
+            "name": "Debug unit tests in executable 'reginald'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=regex",
-                    "--package=regex"
+                    "--bin=reginald",
+                    "--package=reginald"
                 ],
                 "filter": {
-                    "name": "regex",
+                    "name": "reginald",
                     "kind": "bin"
                 }
             },

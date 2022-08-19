@@ -333,7 +333,7 @@ mod tests {
     #[test]
     fn output_diagram() {
         let mut file = File::create("ast-compiled.md").unwrap();
-        writeln!(&mut file, "{}", parse_regex(&mut Lexer::new("a(b|c)")).unwrap().to_string(false)).unwrap();
+        writeln!(&mut file, "{}", parse_regex(&mut Lexer::new("(ab)|(cd)")).unwrap().to_string(false)).unwrap();
     }
 
 

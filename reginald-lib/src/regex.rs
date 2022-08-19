@@ -79,7 +79,8 @@ impl Regex {
     }
 
     pub fn test(&self, string: &str) -> bool {
-        return self.simulate_states(&string.chars().collect(), 0) == string.len();
+        let chars = string.chars().collect();
+        return self.simulate_states(&chars, 0) == chars.len();
     }
 
     pub fn matches(&self, string: &str) -> Vec<(usize, usize)> {
@@ -101,7 +102,7 @@ impl Regex {
         found
     }
 
-    pub fn is_match(&self, string: &str) -> bool {
+    pub fn is_match(&self, string: &str) -> Option<(usize, usize)> {
         let chars = &string.chars().collect();
         let mut i = 0usize;
 
@@ -109,13 +110,13 @@ impl Regex {
         while i < string.len() {
             let size_of_found = self.simulate_states(chars, i);
             if size_of_found != 0 {
-                return true
+                return Some((i, size_of_found))
             } else {
                 i += 1
             }
         }
 
-        return false
+        return None
     }
 
 
@@ -419,7 +420,7 @@ mod tests {
 
     #[test]
     fn output_diagram() {
-        let regex = Regex::compile("a{2,}").unwrap();
+        let regex = Regex::compile("a{2,4}").unwrap();
 
         let mut file = File::create("regex-compiled.md").unwrap();
         writeln!(&mut file, "{}", &regex.states.to_string()).unwrap();
@@ -427,9 +428,9 @@ mod tests {
 
     #[test]
     fn test() {
-        let regex = Regex::compile("a{2,}").unwrap();
+        let regex = Regex::compile("a+b").unwrap();
 
-        assert!(regex.test("aaa"));
+        assert_eq!(regex.test("aaab"), true);
     }
 
     #[test]
@@ -450,6 +451,6 @@ mod tests {
     fn test_is_match() {
         let regex = Regex::compile("a+(b|c)").unwrap();
 
-        assert!(regex.is_match("yas ao cbhj bqwo aaab nme ab"))
+        assert!(matches!(regex.is_match("yas ao cbhj bqwo aaab nme ab"), Some((17, 4))))
     }
 }
