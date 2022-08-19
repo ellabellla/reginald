@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Reginald</title>
+        <link rel="stylesheet" href="css/reset.css">
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body>
+        <section id="compile" method="none">
+            <div class="output-window" id="compile-output">
+                <div class="mermaid" id="compile-graph">
+                </div>
+                <div id="compile-error">
+
+                </div>
+            </div>
+            <input type="text" id="compile-input"/>
+            <button id="compile-button">Compile</button>
+        </section>
+        <section id="run">
+            <div class="output-window" id="run-text" contenteditable></div>
+            <select id="run-type">
+                <option>Match</option>
+                <option>Matches</option>
+                <option>Test</option>
+            </select>
+            <button id="run-button">Run</button>
+            <input type="text" id="replace-input"/>
+            <button id="replace-button">Replace</button>
+        </section>
+        <section id="output">
+            <div class="output-window" id="output-text"></div>
+        </section>
+        <script type="module" src="js/index.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    </body>
+</html>
