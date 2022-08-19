@@ -33,7 +33,6 @@ struct States {
 impl States {
     pub fn to_string(&self) -> String{
         let mut out = vec![];
-        States::push_string("```mermaid\n", &mut out);
         States::push_string("flowchart LR\n", &mut out);
 
         for (i, state) in self.nodes.as_ref().iter().enumerate() {
@@ -42,10 +41,7 @@ impl States {
             for next_state in &state.next {
                 States::push_string(&format!("\t{}-->{}\n", i, next_state), &mut out);
             }
-        }
-
-        States::push_string("```\n", &mut out);
-        
+        }        
         out.iter().collect()
     }
     
