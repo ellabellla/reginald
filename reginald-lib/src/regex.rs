@@ -244,13 +244,18 @@ impl Regex {
 
     fn compile_zero_or_more(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
         let node = ast.nodes.get(ast_node).unwrap();
-        let next_state = self.compile_next(prev_state, ast, node.children[0]);
 
+        self.states.nodes.push(StateNode{ state_type: StateType::None, next: vec![] });
+        let state = self.states.nodes.len() - 1;
+
+        let prev_state = self.states.nodes.get_mut(prev_state).unwrap();
+        prev_state.next.push(state);
+
+        let next_state = self.compile_next(state, ast, node.children[0]);
         let next_state = self.states.nodes.get_mut(next_state).unwrap();
-        next_state.next.push(prev_state);
+        next_state.next.push(state);
 
-
-        prev_state.clone()
+        state
     }
 
     fn compile_optional(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
@@ -272,16 +277,22 @@ impl Regex {
     fn compile_one_or_more(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
         let node = ast.nodes.get(ast_node).unwrap();
 
-        let next_state = self.compile_next(prev_state, ast, node.children[0]);
+        self.states.nodes.push(StateNode{ state_type: StateType::None, next: vec![] });
+        let state = self.states.nodes.len() - 1;
+
+        let prev_state = self.states.nodes.get_mut(prev_state).unwrap();
+        prev_state.next.push(state);
+
+        let next_state = self.compile_next(state, ast, node.children[0]);
         let next_state_node = self.states.nodes.get_mut(next_state).unwrap();
-        next_state_node.next.push(prev_state);
+        next_state_node.next.push(state);
  
         next_state
     }
 
     fn compile_once(&mut self, prev_state: usize, ast: &AST, ast_node: usize) -> usize {
         let node = ast.nodes.get(ast_node).unwrap();
-
+        
         let mut next_state = prev_state;
         
         for child in &node.children {
