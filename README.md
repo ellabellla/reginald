@@ -37,6 +37,10 @@ cargo install --git https://github.com/ellabellla/reginald
 cargo uninstall reginald
 ```
 
+## Example
+
+You can view an online example of the engine compiled to wasm [here](https://ellabellla.github.io/reginald/www/).
+
 ## How it Works
 
 1. A regular expression is inputted as a string into a Lexer
