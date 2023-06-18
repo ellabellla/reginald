@@ -100,4 +100,5 @@ init()
         });
 
         mermaid.initialize({ startOnLoad: true });
+        mermaid.mermaidAPI.render("mermaid", "flowchart TD\n", svgCode => compileGraph.innerHTML = svgCode)
     })
