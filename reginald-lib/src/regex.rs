@@ -1,4 +1,4 @@
-use std::mem::swap;
+use std::{mem::swap, collections::HashSet};
 
 use crate::{parser::{parse_regex, ParseError, SyntaxType, AST}, lexer::{Lexer, SetSymbol}};
 
@@ -123,11 +123,14 @@ impl Regex {
         }
 
         let mut max_len =  offset;
-        let mut stack = &mut vec![(offset, self.states.starting_state)];
-        let mut stack_back = &mut vec![];
+        let mut set = &mut HashSet::new();
+        set.insert((offset, self.states.starting_state));
 
-        while !stack.is_empty() {
-            while let Some((index, state)) = stack.pop() {
+        let mut set_back = &mut HashSet::new();
+
+        while !set.is_empty() {
+            let mut stack = set.drain();
+            while let Some((index, state)) = stack.next() {
                 let state = self.states.nodes.get(state).unwrap();
 
                 match &state.state_type {
@@ -135,20 +138,20 @@ impl Regex {
                         continue;
                     } else if *c == chars[index] {
                         for next_state in &state.next {
-                            stack_back.push((index+1, *next_state));
+                            set_back.insert((index+1, *next_state));
                         }
                     } else {
                         continue;
                     },
                     StateType::Accept => max_len = max_len.max(index),
                     StateType::None => for next_state in &state.next {
-                        stack_back.push((index, *next_state));
+                        set_back.insert((index, *next_state));
                     }
                     StateType::Any => if index+1 > chars.len() {
                         continue;
                     } else {
                         for next_state in &state.next {
-                            stack_back.push((index+1, *next_state));
+                            set_back.insert((index+1, *next_state));
                         }
                     },
                     StateType::Set(set) => if index+1 > chars.len() {
@@ -172,7 +175,7 @@ impl Regex {
                             found
                         } {
                             for next_state in &state.next {
-                                stack_back.push((index+1, *next_state));
+                                set_back.insert((index+1, *next_state));
                             }
                         } else {
                             continue;
@@ -199,7 +202,7 @@ impl Regex {
                             found
                         } {
                             for next_state in &state.next {
-                                stack_back.push((index+1, *next_state));
+                                set_back.insert((index+1, *next_state));
                             }
                         } else {
                             continue;
@@ -208,7 +211,8 @@ impl Regex {
                 }
             }
 
-            swap(&mut stack, &mut stack_back);
+            drop(stack);
+            swap(&mut set, &mut set_back);
         }
 
         return max_len - offset
