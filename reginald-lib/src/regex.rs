@@ -338,15 +338,8 @@ impl Regex {
                 for _ in 0..from {
                     next_state = self.compile_next(next_state, ast, node.children[0]);
                 }
-                self.states.nodes.push(StateNode{ state_type: StateType::None, next: vec![] });
-                let state = self.states.nodes.len() - 1;
 
-                let next_state_node = self.states.nodes.get_mut(next_state).unwrap();
-                next_state_node.next.push(state);
-
-                self.compile_zero_or_more(state, ast, ast_node);
-        
-                state
+                self.compile_zero_or_more(next_state, ast, ast_node)
             }
         } else {
             unreachable!()
